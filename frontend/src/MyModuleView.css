@@ -1,0 +1,69 @@
+.my-module-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px;
+  max-width: 960px;
+}
+
+.my-module-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.my-module-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.my-module-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.my-module-error {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.my-module-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.my-module-input {
+  flex: 1;
+  max-width: 360px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.my-module-input::placeholder {
+  color: var(--text-faint);
+}
+
+.my-module-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.my-module-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,0 +1,10 @@
+{
+  "name": "my-module",
+  "version": "0.1.0",
+  "enabled": true,
+  "dependencies": [],
+  "routes": {
+    "frontend": "my-module",
+    "api": "/api/my-module"
+  }
+}

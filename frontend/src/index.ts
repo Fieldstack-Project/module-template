@@ -1,0 +1,1 @@
+export { MyModuleView } from './MyModuleView';
