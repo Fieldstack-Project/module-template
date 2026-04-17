@@ -1,10 +1,12 @@
 {
   "name": "my-module",
   "version": "0.1.0",
+  "displayName": "내 모듈",
+  "description": "모듈 설명",
   "enabled": true,
   "dependencies": [],
   "routes": {
-    "frontend": "my-module",
+    "frontend": "/my-module",
     "api": "/api/my-module"
   }
 }

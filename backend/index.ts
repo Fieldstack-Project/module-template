@@ -1,18 +1,26 @@
+import type { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
-import { Router } from 'express';
+
 import { z } from 'zod';
 
-// AppServices 타입: Fieldstack 메인 레포의 apps/api/src/app.ts 기준
-// 모듈을 modules/ 폴더에 배치했을 때의 상대 경로입니다.
-import type { AppServices } from '../../../apps/api/src/app';
+// ⚠️ @fieldstack/core 값(value) import 금지.
+//    modules/ 위치에서 런타임 import 시 경로 해석 실패.
+//    - DB: services.db 주입받아 사용
+//    - 마이그레이션: module-registry.ts가 backend/migrations/ 자동 실행
+//    - JwtManager: 아래 duck-type 인터페이스로 대체
+import type { DbProvider } from '@fieldstack/core' with { "resolution-mode": "import" };
 
-import { runMigrations } from './migrations';
 import type { MyModuleItem } from '../shared/types';
 
-// ─── Auth 타입 확장 ───────────────────────────────────────────────────────────
+// ─── Duck-type 인터페이스 ──────────────────────────────────────────────────────
 
-interface AuthRequest extends Request {
-  auth?: { userId: string; sessionId: string };
+type JwtManager = {
+  verifyAccessToken(token: string): Promise<{ userId: string; email: string }>;
+};
+
+interface ModuleServices {
+  jwtManager: JwtManager;
+  db: DbProvider;
 }
 
 // ─── 입력 스키마 ──────────────────────────────────────────────────────────────
@@ -21,45 +29,41 @@ const CreateItemSchema = z.object({
   title: z.string().min(1).max(200),
 });
 
-// ─── 라우터 팩토리 ────────────────────────────────────────────────────────────
-//
-// createRouter(services) 형식으로 export하면 Fieldstack이 서비스를 자동 주입합니다.
+// ─── Auth 미들웨어 ────────────────────────────────────────────────────────────
 
-export function createRouter(services: AppServices): Router {
-  const router = Router();
-
-  // 마이그레이션 (서버 시작 시 1회 실행)
-  void runMigrations();
-
-  // ── Auth 미들웨어 ─────────────────────────────────────────────────────────
-  function requireAuth(req: AuthRequest, res: Response, next: NextFunction): void {
+function createAuth(jwtManager: JwtManager) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
       res.status(401).json({ success: false, error: 'Unauthorized' });
       return;
     }
-    services.jwtManager
-      .verifyAccessToken(header.slice(7))
-      .then((payload) => {
-        req.auth = payload;
-        next();
-      })
-      .catch(() => {
-        res.status(401).json({ success: false, error: 'Invalid or expired token' });
-      });
-  }
+    try {
+      req.auth = await jwtManager.verifyAccessToken(header.slice(7));
+      next();
+    } catch {
+      res.status(401).json({ success: false, error: 'Invalid or expired token' });
+    }
+  };
+}
+
+// ─── 라우터 팩토리 ────────────────────────────────────────────────────────────
+//
+// createRouter(services) 형식으로 export하면 Fieldstack이 자동으로 호출합니다.
+// 마이그레이션(backend/migrations/*.sql)은 module-registry.ts가 자동 실행합니다.
+
+export function createRouter(services: ModuleServices): Router {
+  const { Router } = require('express') as typeof import('express');
+  const router = Router();
+  const auth = createAuth(services.jwtManager);
 
   // ── GET /api/my-module/items ──────────────────────────────────────────────
-  router.get('/items', requireAuth, async (req: AuthRequest, res) => {
+  router.get('/items', auth, async (req: Request, res: Response) => {
     try {
-      const { getDb } = await import('@fieldstack/core');
-      const db = await getDb();
-
-      const rows = await db.query<MyModuleItem>(
+      const rows = await services.db.query<MyModuleItem>(
         'SELECT id, title, created_at AS "createdAt" FROM my_module_items WHERE user_id = $1 ORDER BY created_at DESC',
         [req.auth!.userId],
       );
-
       res.json({ success: true, data: { items: rows } });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
@@ -67,15 +71,12 @@ export function createRouter(services: AppServices): Router {
   });
 
   // ── POST /api/my-module/items ─────────────────────────────────────────────
-  router.post('/items', requireAuth, async (req: AuthRequest, res) => {
+  router.post('/items', auth, async (req: Request, res: Response) => {
     try {
       const { title } = CreateItemSchema.parse(req.body);
 
-      const { getDb } = await import('@fieldstack/core');
-      const db = await getDb();
-
       const id = crypto.randomUUID();
-      await db.query(
+      await services.db.query(
         'INSERT INTO my_module_items (id, user_id, title) VALUES ($1, $2, $3)',
         [id, req.auth!.userId, title],
       );
@@ -91,19 +92,17 @@ export function createRouter(services: AppServices): Router {
   });
 
   // ── DELETE /api/my-module/items/:id ──────────────────────────────────────
-  router.delete('/items/:id', requireAuth, async (req: AuthRequest, res) => {
+  // 성공 시 204 No Content 반환 (본문 없음)
+  router.delete('/items/:id', auth, async (req: Request, res: Response) => {
     try {
       const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
 
-      const { getDb } = await import('@fieldstack/core');
-      const db = await getDb();
-
-      await db.query(
+      await services.db.query(
         'DELETE FROM my_module_items WHERE id = $1 AND user_id = $2',
         [id, req.auth!.userId],
       );
 
-      res.json({ success: true, data: null });
+      res.status(204).end();
     } catch (err) {
       if (err instanceof z.ZodError) {
         res.status(400).json({ success: false, error: err.errors[0]?.message });

@@ -1,33 +1,34 @@
 # Fieldstack Module Template
 
-Fieldstack 모듈을 만들기 위한 기본 템플릿입니다.
+Fieldstack 모듈을 만들기 위한 기본 템플릿입니다.  
+참조 구현: `modules/ledger/` (Fieldstack 메인 레포)
+
+---
 
 ## 폴더 구조
 
 ```
 my-module/
-├── module.json              ← Fieldstack 모듈 매니페스트 (필수)
+├── module.json                  ← 필수. 모듈 매니페스트
 ├── shared/
-│   └── types.ts             ← backend ↔ frontend 공통 타입
+│   └── types.ts                 ← backend ↔ frontend 공통 타입
 ├── backend/
-│   ├── index.ts             ← Express 라우터 (createRouter 함수 export)
-│   ├── migrations.ts        ← DB 마이그레이션 실행 헬퍼
-│   └── db/
-│       └── migrations/
-│           └── 001_init.sql ← 초기 스키마
+│   ├── index.ts                 ← 진입점. createRouter() export
+│   └── migrations/
+│       └── 001_init.sql         ← DB 마이그레이션 (크로스-DB 토큰 사용)
 └── frontend/
     └── src/
-        ├── index.ts          ← View 컴포넌트 export
-        ├── MyModuleView.tsx  ← 메인 React 컴포넌트
-        ├── MyModuleView.css  ← 컴포넌트 스타일
-        └── api.ts            ← 백엔드 API 호출 함수
+        ├── index.ts             ← View export
+        ├── MyModuleView.tsx     ← 메인 React 컴포넌트
+        ├── MyModuleView.css     ← 스타일 (--fs-* 토큰)
+        └── api.ts               ← API 호출 헬퍼
 ```
+
+---
 
 ## 사용 방법
 
 ### 1. 템플릿 복사
-
-`module-template` 폴더를 복사해 이름을 모듈 이름으로 바꿉니다.
 
 ```
 Fieldstack/modules/my-module/
@@ -39,50 +40,80 @@ Fieldstack/modules/my-module/
 {
   "name": "my-module",
   "version": "0.1.0",
+  "displayName": "내 모듈",
+  "description": "모듈 설명",
   "enabled": true,
   "dependencies": [],
   "routes": {
-    "frontend": "my-module",
+    "frontend": "/my-module",
     "api": "/api/my-module"
   }
 }
 ```
 
-- `name`: 모듈 고유 식별자 (디렉터리 이름과 일치 권장)
-- `routes.api`: Express 라우터가 마운트될 경로
-- `routes.frontend`: 앱 내 hash 라우트 (`#my-module`)
-- `dependencies`: 이 모듈이 필요로 하는 다른 모듈 이름 목록
-- `enabled: false`로 설정하면 서버 시작 시 무시됨
+- `name`: 고유 식별자 (디렉터리 이름과 일치)
+- `displayName`: 사이드바에 자동 표시되는 이름
+- `routes.api`: Express 라우터 마운트 경로
+- `routes.frontend`: hash 라우트 (`#my-module`)
+- `enabled: false`로 설정하면 서버 시작 시 완전히 무시됨
 
 ### 3. 이름 치환
 
-`my-module` / `MyModule` / `my_module` 을 실제 모듈 이름으로 일괄 변경합니다.
+`my-module` / `MyModule` / `my_module`을 실제 모듈 이름으로 일괄 변경합니다.
 
 ### 4. Fieldstack 앱에 View 연결
 
-`apps/web/src/main.tsx`의 라우트 분기에 모듈 View를 추가합니다.
+`apps/web/src/main.tsx`에서 3곳 수정:
 
 ```tsx
-// apps/web/src/main.tsx
-import { MyModuleView } from '../../modules/my-module/frontend/src';
+// 1. import 추가
+import { MyModuleView } from '../../../modules/my-module/frontend/src';
 
-// effectiveRoute 분기 안에
-case 'my-module':
-  return <MyModuleView />;
+// 2. MODULE_ROUTES 배열에 추가
+const MODULE_ROUTES: string[] = ["ledger", "my-module"];
+
+// 3. 렌더 분기에 추가
+{effectiveRoute === "my-module" && <MyModuleView />}
 ```
 
-사이드바 메뉴는 `apps/web/src/components/AppShell.tsx`에 추가하세요.
+**사이드바는 자동 구성됩니다.** `AppShell.tsx` 수정 불필요.
+
+---
 
 ## 백엔드 규칙
 
-- `backend/index.ts`는 반드시 `createRouter(services: AppServices): Router`를 named export해야 합니다.
-- 인증이 필요한 라우트는 `services.jwtManager.verifyAccessToken()`으로 토큰을 검증합니다.
-- DB 접근은 `getDb()` 싱글턴을 사용합니다 (`@fieldstack/core`).
-- 모듈 전용 마이그레이션 namespace는 모듈 이름과 동일하게 설정하세요 (`FileMigrationRunner(db, 'my-module', dir)`).
+### ⚠️ @fieldstack/core 값 import 금지
+
+`modules/` 위치에서 `@fieldstack/core` 런타임 import는 경로 해석 실패.
+
+- `getDb()` → 사용 불가. `services.db`로 주입받아 사용
+- `FileMigrationRunner` → 불필요. 마이그레이션은 자동 실행됨
+- `JwtSessionManagerImpl` → duck-type 인터페이스로 대체 (index.ts 참조)
+
+`import type`은 런타임에 제거되므로 허용됩니다.
+
+### 마이그레이션
+
+`backend/migrations/*.sql` 파일을 작성하면 서버 시작 시 자동 실행됩니다.  
+크로스-DB 토큰:
+
+| 토큰 | 용도 |
+|------|------|
+| `{{UUID_PRIMARY_KEY}}` | UUID 기본키 |
+| `{{BOOLEAN_FALSE}}` | 기본값 false 불리언 |
+| `{{NOW}}` | 현재 시각 기본값 |
+
+### HTTP 응답 규칙
+
+- `GET` / `PUT`: `200 { success: true, data: { ... } }`
+- `POST`: `201 { success: true, data: { ... } }`
+- `DELETE`: **`204` (본문 없음)**
+
+---
 
 ## 프론트엔드 규칙
 
-- `@fieldstack/controls` 컴포넌트를 사용합니다 (Button, DataTable, Input 등).
-- CSS 토큰은 `var(--text)`, `var(--bg-surface)`, `var(--accent)` 등 전역 토큰을 사용합니다.
-- API 인증 헤더는 `sessionStorage`의 `fs_auth` 키에서 `accessToken`을 읽어 주입합니다.
-- `@fieldstack/core`를 import할 때는 반드시 `@fieldstack/core/browser` 경로를 사용합니다.
+- `@fieldstack/controls` 컴포넌트 사용 (Button, DataTable, Modal, Alert 등)
+- CSS 토큰: `var(--fs-text-primary)`, `var(--fs-bg-card)`, `var(--fs-border)`, `var(--fs-primary)`, `var(--fs-danger)` 등 `--fs-*` 접두사
+- 인증 토큰: `sessionStorage.getItem('fs_token')` — `fs_auth` 아님
+- API 응답: `res.text()` 후 파싱 — `res.json()`은 204 빈 응답에서 오류 발생

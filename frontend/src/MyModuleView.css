@@ -1,3 +1,5 @@
+/* CSS 토큰은 apps/web/src/styles/global.css의 --fs-* 변수를 사용합니다. */
+
 .my-module-page {
   display: flex;
   flex-direction: column;
@@ -14,24 +16,24 @@
 
 .my-module-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--fs-text-primary);
 }
 
 .my-module-subtitle {
   margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 0.85rem;
+  color: var(--fs-text-secondary);
 }
 
 .my-module-error {
   padding: 10px 14px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
-  color: var(--danger);
-  font-size: 13px;
+  background: color-mix(in srgb, var(--fs-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fs-danger) 30%, transparent);
+  color: var(--fs-danger);
+  font-size: 0.85rem;
 }
 
 .my-module-form {
@@ -44,23 +46,23 @@
   flex: 1;
   max-width: 360px;
   padding: 7px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--fs-border);
   border-radius: 8px;
-  background: var(--bg-surface);
-  color: var(--text);
-  font-size: 13px;
+  background: var(--fs-bg-secondary);
+  color: var(--fs-text-primary);
+  font-size: 0.875rem;
   font-family: inherit;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition: border-color 120ms ease;
+  box-sizing: border-box;
 }
 
 .my-module-input::placeholder {
-  color: var(--text-faint);
+  color: var(--fs-text-secondary);
 }
 
 .my-module-input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-color: var(--fs-primary);
 }
 
 .my-module-input:disabled {
