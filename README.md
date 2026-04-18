@@ -114,6 +114,14 @@ const MODULE_ROUTES: string[] = ["ledger", "my-module"];
 ## 프론트엔드 규칙
 
 - `@fieldstack/controls` 컴포넌트 사용 (Button, DataTable, Modal, Alert 등)
-- CSS 토큰: `var(--fs-text-primary)`, `var(--fs-bg-card)`, `var(--fs-border)`, `var(--fs-primary)`, `var(--fs-danger)` 등 `--fs-*` 접두사
+- CSS 토큰: `var(--text)`, `var(--bg-surface)`, `var(--border)`, `var(--primary)`, `var(--err)` 등 — `--fs-*` 접두사는 존재하지 않음, 사용 금지
 - 인증 토큰: `sessionStorage.getItem('fs_token')` — `fs_auth` 아님
-- API 응답: `res.text()` 후 파싱 — `res.json()`은 204 빈 응답에서 오류 발생
+- API 호출: `apiCall()` from `@fieldstack/core/browser` 사용 — 인증 헤더·응답 파싱·204 처리 포함
+
+---
+
+## 코드 작성 규칙
+
+- **주석 필수**: 영어 또는 한국어로 주석을 작성할 것. 로직이 자명하지 않은 코드에는 반드시 주석을 달아야 한다.
+  - 자세한 설명은 docs 사이트를 참고하도록 유도해도 무방함
+  - 비개발자 관리자도 코드를 대략적으로 파악할 수 있어야 하기 때문에 주석을 생략하지 말 것
