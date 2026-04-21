@@ -1,0 +1,8 @@
+{
+  "displayName": "My Module",
+  "description": "Describe what this module does.",
+  "title": "My Module",
+  "empty": "No items yet.",
+  "add": "Add",
+  "placeholder": "New item title..."
+}

@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@fieldstack/controls';
 import { DataTable, type TableColumn } from '@fieldstack/controls';
 
+// 경로는 Fieldstack 레포 내 위치에 맞게 조정할 것
+// 예: import { registerModuleLocale } from '../../../apps/web/src/i18n/registerModuleLocale';
+import { registerModuleLocale } from '../../../apps/web/src/i18n/registerModuleLocale';
+import ko from '../locales/ko.json';
+import en from '../locales/en.json';
+
 import { myModuleApi } from './api';
 import type { MyModuleItem } from '../../shared/types';
 import './MyModuleView.css';
+
+// 모듈 번역 파일 등록 — 앱 i18next에 'my-module' 네임스페이스로 추가
+registerModuleLocale('my-module', ko, en);
 
 // ─── 테이블 컬럼 정의 ──────────────────────────────────────────────────────────
 
@@ -18,6 +28,7 @@ const COLUMNS: TableColumn<Record<string, unknown>>[] = [
 // ─── MyModuleView ─────────────────────────────────────────────────────────────
 
 export function MyModuleView() {
+  const { t } = useTranslation('my-module');
   const [items, setItems]     = useState<MyModuleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput]     = useState('');
@@ -56,8 +67,8 @@ export function MyModuleView() {
   return (
     <div className="my-module-page">
       <header className="my-module-header">
-        <h1 className="my-module-title">My Module</h1>
-        <p className="my-module-subtitle">모듈 설명을 여기에 작성하세요.</p>
+        <h1 className="my-module-title">{t('title')}</h1>
+        <p className="my-module-subtitle">{t('description')}</p>
       </header>
 
       {error && (
@@ -68,7 +79,7 @@ export function MyModuleView() {
         <input
           className="my-module-input"
           type="text"
-          placeholder="새 항목 제목..."
+          placeholder={t('placeholder')}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
@@ -80,7 +91,7 @@ export function MyModuleView() {
           loading={saving}
           onClick={() => void handleCreate()}
         >
-          추가
+          {t('add')}
         </Button>
       </div>
 
@@ -89,7 +100,7 @@ export function MyModuleView() {
         rows={items as unknown as Record<string, unknown>[]}
         rowKey="id"
         loading={loading}
-        emptyText="항목이 없습니다."
+        emptyText={t('empty')}
         pageSize={20}
       />
     </div>

@@ -1,8 +1,8 @@
 {
   "name": "my-module",
   "version": "0.1.0",
-  "displayName": "내 모듈",
-  "description": "모듈 설명",
+  "displayName": "my-module:displayName",
+  "description": "my-module:description",
   "enabled": true,
   "dependencies": [],
   "routes": {
