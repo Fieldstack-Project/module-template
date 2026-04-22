@@ -8,5 +8,11 @@
   "routes": {
     "frontend": "/my-module",
     "api": "/api/my-module"
+  },
+  "repository": "",
+  "author": {
+    "name": "",
+    "email": "",
+    "url": ""
   }
 }
